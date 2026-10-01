@@ -1,6 +1,8 @@
-# Reproduce the gridfm-datakit technical report (diversity plots)
+# gridfm-datakit-v1: A Python Library for Scalable and Realistic Power Flow and Optimal Power Flow Data Generation
 
-This covers the entropy spider plots, the feature violin plots, the branch-flow entropy barplot, and the branch-loading histograms in [gridfm-datakit-v1](https://arxiv.org/abs/2512.14658) (arXiv:2512.14658).
+These are step-by-step guides for reproducing the results of [gridfm-datakit-v1: A Python Library for Scalable and Realistic Power Flow and Optimal Power Flow Data Generation](https://arxiv.org/abs/2512.14658) (arXiv:2512.14658).
+
+This covers the entropy spider plots, the feature violin plots, the branch-flow entropy barplot, and the branch-loading histograms.
 
 ## 1. Saved results
 
