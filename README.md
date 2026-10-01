@@ -1,139 +1,130 @@
-# Reproducing the datakit technical report (diversity plots)
+# Reproduce the gridfm-datakit technical report (diversity plots)
 
-These commands generate the data-diversity figures of the **gridfm-datakit technical report** *gridfm-datakit-v1* ([arXiv:2512.14658](https://arxiv.org/abs/2512.14658)): the entropy spider plots, the feature violin plots, the branch-flow entropy barplot, and the branch-loading histograms.
+This covers the entropy spider plots, the feature violin plots, the branch-flow entropy barplot, and the branch-loading histograms in [gridfm-datakit-v1](https://arxiv.org/abs/2512.14658) (arXiv:2512.14658).
 
-The scripts stay on the datakit **`genco-paper-repro`** branch (not default `main`). Clone that branch and run every command from the repository root:
+## 1. Saved results
 
-```bash
-git clone -b genco-paper-repro https://github.com/gridfm/gridfm-datakit.git
-cd gridfm-datakit
-```
+The sampled parquet used in the figures is already saved in [gridfm/reproducibility-datakit-technical-report](https://huggingface.co/datasets/gridfm/reproducibility-datakit-technical-report).
 
-## 1. Install
+Six datasets on `case118_ieee` sit at the repo root. Each is downsampled to 10,000 scenarios. Every file is `<prefix>_bus_data.parquet` and `<prefix>_gen_data.parquet`. The two PF datasets also have `<prefix>_branch_data.parquet`.
 
-Python 3.10–3.12.
-
-```bash
-pip install -e '.[dev,test]'
-pip install seaborn        # used by plot_branch_loading.py; not a package dependency
-export PYTHONPATH=$PWD
-```
-
-## 2. Get the data
-
-The figures are computed from a snapshot of sampled parquet (~979 MB), published at [`gridfm/reproducibility-datakit-technical-report`](https://huggingface.co/datasets/gridfm/reproducibility-datakit-technical-report). It is public, so no token is needed:
-
-```bash
-hf download gridfm/reproducibility-datakit-technical-report \
-    --repo-type dataset \
-    --exclude "full/*" \
-    --local-dir scripts/datakit_report/dataset_sampled
-```
-
-`--exclude "full/*"` is what keeps this to ~1 GB — without it you also pull the 15 GB of non-downsampled data described below.
-
-The scripts expect it at `scripts/datakit_report/dataset_sampled/` (the default), or point them elsewhere with `--data-dir`.
-
-The snapshot holds six datasets on `case118_ieee`, each downsampled to exactly 10,000 scenarios × 118 buses so that every library contributes equally to the diversity metrics:
-
-| File prefix | Mode | Library |
-|---|---|---|
-| `gridfm_datakit_pf` | PF | this library, `mode: pf` |
-| `gridfm_datakit_opf` | OPF | this library, `mode: opf` |
+| Prefix | Mode | Library |
+| --- | --- | --- |
+| `gridfm_datakit_pf` | PF | gridfm-datakit, `mode: pf` |
+| `gridfm_datakit_opf` | OPF | gridfm-datakit, `mode: opf` |
 | `pfdelta` | PF | PFΔ |
 | `opfdata` | OPF | OPFData |
 | `pglearn` | OPF | PGLearn |
 | `opflearn` | OPF | OPF-Learn |
 
-Each has `_bus_data.parquet` and `_gen_data.parquet`; the two PF datasets also have `_branch_data.parquet` (needed for the branch figures).
+To generate the figures from these saved results, jump to [Figures and tables](#6-figures-and-tables).
 
-### The full, non-downsampled data
+## 2. Data
 
-The same HuggingFace repo also holds the complete datasets under `full/`, for anyone who needs more than the 10,000 scenarios used by the figures. **You do not need this to reproduce the figures** — it is 15 GB against the snapshot's 1 GB.
+The dataset is public.
 
-```
-gridfm/reproducibility-datakit-technical-report
-├── *_bus_data.parquet, *_gen_data.parquet, *_branch_data.parquet   <- the 1 GB snapshot (repo root)
-└── full/
-    ├── gridfm_datakit_pf/     this library, mode: pf    199,207 scenarios
-    ├── gridfm_datakit_opf/    this library, mode: opf   195,753 scenarios
-    ├── opfdata/               OPFData                   300,000 scenarios
-    ├── pglearn/               PGLearn                    96,852 scenarios
-    ├── opflearn/              OPF-Learn                  10,000 scenarios
-    └── pfdelta/               PFΔ                        29,000 scenarios
+```bash
+hf download gridfm/reproducibility-datakit-technical-report \
+  --repo-type dataset \
+  --exclude "full/*" \
+  --local-dir scripts/datakit_report/dataset_sampled
 ```
 
-## 3. Generate the figures
+`--exclude "full/*"` keeps the download to about 1 GB. The scripts read `scripts/datakit_report/dataset_sampled/` by default. Pass `--data-dir` to use another path.
+
+The same repo has the non-downsampled tables under `full/`. You do not need them to rebuild the figures. That tree is about 15 GB.
+
+| Folder | Scenarios |
+| --- | --- |
+| `full/gridfm_datakit_pf/` | 199,207 |
+| `full/gridfm_datakit_opf/` | 195,753 |
+| `full/opfdata/` | 300,000 |
+| `full/pglearn/` | 96,852 |
+| `full/opflearn/` | 10,000 |
+| `full/pfdelta/` | 29,000 |
+
+### Rebuilding the snapshot
+
+Skip this if you are plotting the published files.
+
+[prepare_datasets.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/prepare_datasets.py) downsamples every dataset to the smallest scenario count.
+
+```bash
+python scripts/datakit_report/prepare_datasets.py --base-path /path/to/raw/datasets
+```
+
+The draw is random, so a new run does not reproduce the published figures. `--seed` repeats that new draw. Use the Hugging Face snapshot for the report figures.
+
+gridfm-datakit inputs come from [scripts/datakit_report/configs/](https://github.com/gridfm/gridfm-datakit/tree/genco-paper-repro/scripts/datakit_report/configs):
+
+```bash
+gridfm_datakit generate scripts/datakit_report/configs/case118_ieee_pf.yaml
+```
+
+The other libraries have to be converted to this parquet schema first.
+
+| Library | Converter |
+| --- | --- |
+| PFΔ | [pfdelta/batch_convert_pfdelta.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/pfdelta/batch_convert_pfdelta.py) |
+| OPFData | [opf_data/batch_convert.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/opf_data/batch_convert.py) |
+| PGLearn | [pg_learn_conversion.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/pg_learn_conversion.py). Set `PGLEARN_DIR`. |
+| OPF-Learn | [opf_learn_conversion.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/opf_learn_conversion.py). Set `OPFLEARN_DIR`. |
+
+## 3. Install
+
+Python 3.10–3.12. Branch [genco-paper-repro](https://github.com/gridfm/gridfm-datakit/tree/genco-paper-repro).
+
+```bash
+git clone -b genco-paper-repro https://github.com/gridfm/gridfm-datakit.git
+cd gridfm-datakit
+pip install -e '.[dev,test]'
+pip install seaborn
+export PYTHONPATH=$PWD
+```
+
+`seaborn` is used by `plot_branch_loading.py`. It is not a package dependency. Run the later commands from that repository root.
+
+## 4. Training
+
+There is no training step. The figures are plots of the saved parquet.
+
+## 5. Evaluating the paper checkpoints
+
+There is no saved checkpoint to evaluate.
+
+## 6. Figures and tables
+
+From the datakit repo root. Scripts: [plot_spider.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_spider.py), [plot_violin.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_violin.py), [plot_bar_branch.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_bar_branch.py), [plot_branch_loading.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_branch_loading.py).
 
 ```bash
 OUT=scripts/datakit_report/out
 
-# Entropy spider plots (PF and OPF)
-python scripts/datakit_report/plot_spider.py --mode pf  --metric entropy --output-dir $OUT
+python scripts/datakit_report/plot_spider.py --mode pf --metric entropy --output-dir $OUT
 python scripts/datakit_report/plot_spider.py --mode opf --metric entropy --output-dir $OUT
 
-# Feature violin plots: Pd, Qd, Pg, Qg, Vm, Va for PF and OPF
-python scripts/datakit_report/plot_violin.py --mode pf  --output-dir $OUT
+python scripts/datakit_report/plot_violin.py --mode pf --output-dir $OUT
 python scripts/datakit_report/plot_violin.py --mode opf --output-dir $OUT
 
-# Branch flow entropy barplot (Pf, Qf)
 python scripts/datakit_report/plot_bar_branch.py --metric entropy --output-dir $OUT
 
-# Branch loading histograms
 python scripts/datakit_report/plot_branch_loading.py --output-dir $OUT
 ```
 
-That writes 17 PDFs into `scripts/datakit_report/out/`:
+That writes 17 PDFs into `scripts/datakit_report/out/`.
 
 | Script | Output |
-|---|---|
+| --- | --- |
 | `plot_spider.py` | `spider_plot_entropy_{pf,opf}.pdf` |
 | `plot_violin.py` | `{Pd,Qd,Pg,Qg,Vm,Va}_violin_{pf,opf}.pdf` |
 | `plot_bar_branch.py` | `barplot_branch_entropy_pf.pdf` |
 | `plot_branch_loading.py` | `branch_loading_{datakit,pfdelta}.pdf` |
 
-Every script takes `--output-dir`, `--data-dir`, and `--datasets` (to restrict the comparison to a subset). `plot_spider.py` and `plot_bar_branch.py` also take `--metric std` for the standard-deviation variant; omitting `--metric` produces both.
+Each script takes `--output-dir`, `--data-dir`, and `--datasets`. `plot_spider.py` and `plot_bar_branch.py` also take `--metric std`. Omitting `--metric` writes both the entropy and the standard-deviation figures.
 
-The first spider or violin run calls `load_net_from_pglib("case118_ieee")`, which downloads the PGLib case into the installed package's `grids/` directory and may resolve the pinned Julia packages. That is a one-off, cached cost — none of these scripts solve OPF or PF.
-
-## What the numbers mean
-
-`plot_branch_loading.py` prints the overload statistics alongside the histograms:
-
-```
-Loading gridfm_datakit_pf...
-  percentage of overloaded branches per scenario: 1.2158602150537636
-  percentage of scenarios with overloaded branches: 79.07
-Loading pfdelta...
-  percentage of overloaded branches per scenario: 8.027258064516129
-  percentage of scenarios with overloaded branches: 100.0
-```
-
-Branch loading is `max(S_from, S_to) / rate_a` with `S = sqrt(P² + Q²)`; a branch is overloaded when it exceeds 1.
-
-**Entropy.** `plot_utils.py` implements the mean normalized Shannon entropy: a 100-bin histogram per bus over a fixed domain, entropy in bits, averaged across buses and normalized by `log2(100)`, giving a value in `[0, 1]`. Domains are `(-π, π]` for `Va` (treated as circular via `entropy_circular_from_deg_fixed`), the network voltage bounds for `Vm`, and per-bus empirical min/max **pooled across all compared datasets** for `Pd, Qd, Pg, Qg`. Pooling the domain is what makes the values comparable across libraries instead of reflecting per-dataset binning.
-
-## Rebuilding the snapshot from raw output
-
-Only needed if you are generating new datasets rather than reproducing the published figures.
-
-```bash
-python scripts/datakit_report/prepare_datasets.py --base-path /path/to/raw/datasets [--seed 0]
-```
-
-It finds the smallest scenario count across the datasets and downsamples all of them to it. The gridfm-datakit inputs themselves are generated with the configs in [`scripts/datakit_report/configs/`](https://github.com/gridfm/gridfm-datakit/tree/genco-paper-repro/scripts/datakit_report/configs) (`gridfm_datakit generate scripts/datakit_report/configs/case118_ieee_pf.yaml`); the full non-downsampled data is on HuggingFace under `full/`. Note that the subset is drawn randomly: a fresh run yields a different sample and therefore slightly different figures. `--seed` makes a run repeatable but cannot recover the published snapshot — use the HuggingFace snapshot for that.
-
-The external libraries must be converted to this repository's parquet schema first:
-
-| Library | Converter |
-|---|---|
-| PFΔ | `pfdelta/batch_convert_pfdelta.py` |
-| OPFData | `opf_data/batch_convert.py` |
-| PGLearn | `scripts/datakit_report/pg_learn_conversion.py` (set `PGLEARN_DIR`) |
-| OPF-Learn | `scripts/datakit_report/opf_learn_conversion.py` (set `OPFLEARN_DIR`) |
+The first spider or violin run calls `load_net_from_pglib("case118_ieee")`. That downloads the PGLib case into the installed package `grids/` directory and may resolve the pinned Julia packages. Later runs reuse that cache. These scripts do not solve power flow or optimal power flow.
 
 ## Notes
 
-- **Bus selection in the violin plots is pinned.** Each violin panel shows 10 buses, fixed in `PINNED_BUSES` in `plot_violin.py` so the figures are stable across runs. Pass `--no-pin` to sample buses randomly instead.
-- **`plot_branch_loading.py` forces the `Agg` matplotlib backend** before importing pyplot. On macOS the default `macosx` backend applies Retina scaling to saved vector output, which changes the rendering. Do not reorder those imports.
-- **`plot_spider_branch.py` and `plot_violin_branch.py`** produce branch-level spider and violin figures that are not part of the paper. They are kept because they were part of the original analysis. Careful: `plot_spider_branch.py` writes the same filename as `plot_bar_branch.py` (`barplot_branch_{metric}_pf.pdf`), so run them into separate `--output-dir`s.
+- Violin panels use the 10 buses listed in `PINNED_BUSES` in [plot_violin.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_violin.py). Pass `--no-pin` to sample buses instead.
+- [plot_branch_loading.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_branch_loading.py) sets the matplotlib backend to `Agg` before importing pyplot. Leave that import order as it is.
+- [plot_spider_branch.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_spider_branch.py) and [plot_violin_branch.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_violin_branch.py) are not used for the report figures. `plot_spider_branch.py` writes `barplot_branch_{metric}_pf.pdf`, the same name as `plot_bar_branch.py`. Point it at a separate `--output-dir`.
