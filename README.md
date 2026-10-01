@@ -4,23 +4,9 @@ These are step-by-step guides for reproducing the results of [gridfm-datakit-v1:
 
 This covers the entropy spider plots, the feature violin plots, the branch-flow entropy barplot, and the branch-loading histograms.
 
-### Power Flow (PF)
-
-| Library | Grid size | Preserve spatial correlation | From real profiles | Diverse loads | N-k (k>2) | Gen profiles | Admittance variations | Points outside operating limits |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| gridfm-datakit | 30,000 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| PFΔ | 2,000 | ✗ | ✗ | ✓ | ✗ | ✓ | ✗ | ✓ |
-| PowerFlowNet | 6,000 | ✓ | ✗ | ✗ | ✗ | ✓ | ✓ | ✗ |
-
-### Optimal Power Flow (OPF)
-
-| Library | Grid size | Preserve spatial correlation | From real profiles | Diverse loads | N-k (k>2) | Gen profiles | Admittance variations |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| gridfm-datakit | 10,000 | ✓ | ✓ | ✓ | ✓ | ✓ | ✓ |
-| OPFData (CANOS) | 14,000 | ✓ | ✗ | ✗ | ✗ | ✗ | ✗ |
-| OPF-Learn | 118 | ✗ | ✗ | ✓ | ✗ | ✗ | ✗ |
-| PGLearn | 24,000 | ✓ | ✗ | ✓ | ✗ | ✗ | ✗ |
-| PowerGraph | 118 | ✓ | ✓ | ✗ | ✗ | ✗ | ✗ |
+<p align="center">
+  <img src="figures/comparison.png" alt="Comparison of power flow and optimal power flow data generation methods." width="886">
+</p>
 
 This comparison was valid on 16 December 2025, when the paper was released on arXiv.
 
