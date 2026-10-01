@@ -4,7 +4,21 @@ These are step-by-step guides for reproducing the results of [gridfm-datakit-v1:
 
 This covers the entropy spider plots, the feature violin plots, the branch-flow entropy barplot, and the branch-loading histograms.
 
-## 1. Saved results
+## 1. Install
+
+Python 3.10–3.12. Branch [genco-paper-repro](https://github.com/gridfm/gridfm-datakit/tree/genco-paper-repro).
+
+```bash
+git clone -b genco-paper-repro https://github.com/gridfm/gridfm-datakit.git
+cd gridfm-datakit
+pip install -e '.[dev,test]'
+pip install seaborn
+export PYTHONPATH=$PWD
+```
+
+Run the later commands from that repository root.
+
+## 2. Data
 
 The sampled parquet used in the figures is already saved in [gridfm/reproducibility-datakit-technical-report](https://huggingface.co/datasets/gridfm/reproducibility-datakit-technical-report).
 
@@ -19,11 +33,7 @@ Six datasets on `case118_ieee` sit at the repo root. Each is downsampled to 10,0
 | `pglearn` | OPF | PGLearn |
 | `opflearn` | OPF | OPF-Learn |
 
-To generate the figures from these saved results, jump to [Figures and tables](#6-figures-and-tables).
-
-## 2. Data
-
-The dataset is public.
+Download those sampled files only. `--exclude "full/*"` leaves out the larger tables and keeps the download to about 1 GB. The scripts read `scripts/datakit_report/dataset_sampled/` by default. Pass `--data-dir` to use another path.
 
 ```bash
 hf download gridfm/reproducibility-datakit-technical-report \
@@ -32,9 +42,18 @@ hf download gridfm/reproducibility-datakit-technical-report \
   --local-dir scripts/datakit_report/dataset_sampled
 ```
 
-`--exclude "full/*"` keeps the download to about 1 GB. The scripts read `scripts/datakit_report/dataset_sampled/` by default. Pass `--data-dir` to use another path.
+To generate the figures from these saved results, jump to [Figures and tables](#4-figures-and-tables).
 
-The same repo has the non-downsampled tables under `full/`. You do not need them to rebuild the figures. That tree is about 15 GB.
+## 3. Regenerating the sampled data from scratch
+
+The parquet in the previous section is a sample of larger datasets. Those tables are in the same Hugging Face repo, under `full/`. You do not need them to rebuild the figures. That tree is about 15 GB.
+
+```bash
+hf download gridfm/reproducibility-datakit-technical-report \
+  --repo-type dataset \
+  --include "full/*" \
+  --local-dir scripts/datakit_report/dataset_full
+```
 
 | Folder | Scenarios |
 | --- | --- |
@@ -45,9 +64,7 @@ The same repo has the non-downsampled tables under `full/`. You do not need them
 | `full/opflearn/` | 10,000 |
 | `full/pfdelta/` | 29,000 |
 
-### Rebuilding the snapshot
-
-Skip this if you are plotting the published files.
+### Sampling the snapshots
 
 [prepare_datasets.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/prepare_datasets.py) downsamples every dataset to the smallest scenario count.
 
@@ -55,7 +72,7 @@ Skip this if you are plotting the published files.
 python scripts/datakit_report/prepare_datasets.py --base-path /path/to/raw/datasets
 ```
 
-The draw is random, so a new run does not reproduce the published figures. `--seed` repeats that new draw. Use the Hugging Face snapshot for the report figures.
+The draw is random, so a new run does not reproduce the published figures. Use the Hugging Face snapshot for the report figures.
 
 gridfm-datakit inputs come from [scripts/datakit_report/configs/](https://github.com/gridfm/gridfm-datakit/tree/genco-paper-repro/scripts/datakit_report/configs):
 
@@ -72,31 +89,9 @@ The other libraries have to be converted to this parquet schema first.
 | PGLearn | [pg_learn_conversion.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/pg_learn_conversion.py). Set `PGLEARN_DIR`. |
 | OPF-Learn | [opf_learn_conversion.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/opf_learn_conversion.py). Set `OPFLEARN_DIR`. |
 
-## 3. Install
+## 4. Figures and tables
 
-Python 3.10–3.12. Branch [genco-paper-repro](https://github.com/gridfm/gridfm-datakit/tree/genco-paper-repro).
-
-```bash
-git clone -b genco-paper-repro https://github.com/gridfm/gridfm-datakit.git
-cd gridfm-datakit
-pip install -e '.[dev,test]'
-pip install seaborn
-export PYTHONPATH=$PWD
-```
-
-`seaborn` is used by `plot_branch_loading.py`. It is not a package dependency. Run the later commands from that repository root.
-
-## 4. Training
-
-There is no training step. The figures are plots of the saved parquet.
-
-## 5. Evaluating the paper checkpoints
-
-There is no saved checkpoint to evaluate.
-
-## 6. Figures and tables
-
-From the datakit repo root. Scripts: [plot_spider.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_spider.py), [plot_violin.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_violin.py), [plot_bar_branch.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_bar_branch.py), [plot_branch_loading.py](https://github.com/gridfm/gridfm-datakit/blob/genco-paper-repro/scripts/datakit_report/plot_branch_loading.py).
+From the datakit repo root. Scripts are in [scripts/datakit_report/](https://github.com/gridfm/gridfm-datakit/tree/genco-paper-repro/scripts/datakit_report).
 
 ```bash
 OUT=scripts/datakit_report/out
@@ -120,10 +115,6 @@ That writes 17 PDFs into `scripts/datakit_report/out/`.
 | `plot_violin.py` | `{Pd,Qd,Pg,Qg,Vm,Va}_violin_{pf,opf}.pdf` |
 | `plot_bar_branch.py` | `barplot_branch_entropy_pf.pdf` |
 | `plot_branch_loading.py` | `branch_loading_{datakit,pfdelta}.pdf` |
-
-Each script takes `--output-dir`, `--data-dir`, and `--datasets`. `plot_spider.py` and `plot_bar_branch.py` also take `--metric std`. Omitting `--metric` writes both the entropy and the standard-deviation figures.
-
-The first spider or violin run calls `load_net_from_pglib("case118_ieee")`. That downloads the PGLib case into the installed package `grids/` directory and may resolve the pinned Julia packages. Later runs reuse that cache. These scripts do not solve power flow or optimal power flow.
 
 ## Notes
 
