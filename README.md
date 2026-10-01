@@ -4,12 +4,6 @@ These are step-by-step guides for reproducing the results of [gridfm-datakit-v1:
 
 This covers the entropy spider plots, the feature violin plots, the branch-flow entropy barplot, and the branch-loading histograms.
 
-<p align="center">
-  <img src="figures/comparison.png" alt="Comparison of power flow and optimal power flow data generation methods." width="886">
-</p>
-
-This comparison was valid on 16 December 2025, when the paper was released on arXiv.
-
 ## 1. Install
 
 Python 3.10–3.12. Branch [genco-paper-repro](https://github.com/gridfm/gridfm-datakit/tree/genco-paper-repro).
